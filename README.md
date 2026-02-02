@@ -14,3 +14,52 @@ The React Compiler is currently not compatible with SWC. See [this issue](https:
 ## Expanding the ESLint configuration
 
 If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+A modern JavaScript runtime and a package manager available on your system  
+(for example, a recent Node.js installation).
+
+---
+
+### Install
+
+`npm install`
+or
+`yarn`
+
+---
+
+### Run in Development Mode
+
+`npm run dev` or `yarn dev`
+
+Open the local URL shown in the terminal to view the app.
+
+---
+
+### Build for Production
+
+```bash
+npm run build
+```
+
+The production-ready output will be generated in the `dist/` directory.
+
+---
+
+### Preview Production Build
+
+```bash
+npm run preview
+```
+
+---
+
+## License
+
+Licensed under the MIT License. See the `LICENSE` file for details.
