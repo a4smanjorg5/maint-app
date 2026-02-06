@@ -30,9 +30,8 @@ export const useLiveQuery = (tables, query, params, handleResult) => {
       tables,
       query, params,
       handleResult,
-      setResult,
       reset,
-    })
+    }).then(setResult)
   }, [tables, query, params, handleResult])
 
   useEffect(reload, [reload])
@@ -46,6 +45,15 @@ export const useLiveQuery = (tables, query, params, handleResult) => {
 }
 
 /**
+ * @template {Error} E
+ * @typedef {Object} TransactionOptions
+ * @property {() => void} [onComplete]
+ * @property {(error: E) => void} [onError]
+ * @property {() => void} [onSuccess]
+ * @property {boolean} [reset]
+ */
+
+/**
  * @template T
  * @template {Error} [E=Error]
  * @param {string[]} tables The tables to syncs
@@ -53,16 +61,26 @@ export const useLiveQuery = (tables, query, params, handleResult) => {
 export const useTransaction = tables => {
   const [result, setResult] = useState(/** @type {ResultState<T, E>} */({ status: 'idle' }))
 
-  const transaction = useCallback((
-    /** @type {(tx: import('@electric-sql/pglite').Transaction) => Promise<void>} */ callback,
-    /** @type {boolean} */ reset = false
-  ) => {
+  const transaction = useCallback(/**
+   * @param {(tx: import('@electric-sql/pglite').Transaction) => Promise<void>} callback
+   * @param {TransactionOptions<E>} param1
+   */ (callback, { onComplete, onError, onSuccess, reset } = {}) => {
     setResult({ status: 'pending' })
     dbTransact({
       tables,
       callback,
-      setResult,
       reset,
+    }).then(result => {
+      setResult(result)
+      try {
+        if (result.error) {
+          onError?.(result.error)
+        } else {
+          onSuccess?.()
+        }
+      } finally {
+        onComplete?.()
+      }
     })
   }, [tables])
 
@@ -75,7 +93,7 @@ export const useTransaction = tables => {
   }
 }
 
-const dbTransact = async ({ tables, callback, setResult, reset }) => {
+const dbTransact = async ({ tables, callback, reset }) => {
   try {
     if (reset) await resetDB()
     const result = await db.transaction(callback)
@@ -84,16 +102,16 @@ const dbTransact = async ({ tables, callback, setResult, reset }) => {
     } catch (error) {
       Promise.reject(error)
     }
-    setResult({
+    return {
       data: result,
       status: 'success',
-    })
+    }
   } catch (error) {
-    setResult({ status: 'error', error })
+    return { status: 'error', error }
   }
 }
 
-const liveQuery = async ({ tables, query, params, handleResult, setResult, reset }) => {
+const liveQuery = async ({ tables, query, params, handleResult, reset }) => {
   try {
     if (reset) await resetDB()
     const pulling = syncPull(tables)
@@ -105,12 +123,12 @@ const liveQuery = async ({ tables, query, params, handleResult, setResult, reset
       result = await db.query(query, (params || []).map(bigint2Str))
     }
     syncPush(tables)
-    setResult({
+    return {
       data: typeof handleResult == 'function' ? await handleResult(result) : result.rows,
       status: 'success',
-    })
+    }
   } catch (error) {
-    setResult({ status: 'error', error })
+    return { status: 'error', error }
   }
 }
 
